@@ -20,6 +20,14 @@ extension URLSession {
     }
 }
 
+public enum HTTPMethod: String {
+    case get = "GET"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case patch = "PATCH"
+}
+
 public class Peremen {
     private let api = "https://peremen.space/api/v2"
     private var headers: [String: String]
