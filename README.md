@@ -7,8 +7,8 @@ import peremen
 let client = Peremen()
 
 do {
-    let email_info = try await client.request_code(email: "email")
-    print(email_info)
+    let emailInfo = try await client.requestCode(email: "email")
+    print(emailInfo)
 } catch {
     print("Error: \(error)")
 }
