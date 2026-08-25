@@ -37,43 +37,47 @@ public class Peremen {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
         ]
     }
-   
-    public func request_code(email: String) async throws -> Any {
-        let urlString = "\(api)/premium/user-email-verification"
-        guard let url = URL(string: urlString) else {
+    
+    private func fetchJSON(from urlString: String,method: HTTPMethod = .get,body: Data? = nil,queryParameters: [String: String]? = nil) async throws -> Any {
+        var urlComponents = URLComponents(string: urlString)
+        if let queryParameters = queryParameters {
+            urlComponents?.queryItems = queryParameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        }
+        guard let url = urlComponents?.url else {
             throw NSError(domain: "Invalid URL", code: -1)
         }
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = method.rawValue
         request.allHTTPHeaderFields = headers
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let body = body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        let (data, _) = try await URLSession.shared.data(for: request)
+        return try JSONSerialization.jsonObject(with: data)
+    }
+   
+    public func requestCode(email: String) async throws -> Any {
+        let urlString = "\(api)/premium/user-email-verification"
         
         let body: [String: Any] = ["email": email]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         
-        let (responseData, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: responseData)
+        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+        
+        return try await fetchJSON(from: urlString,method: .post,body: bodyData,queryParameters: nil)
     }
 
-    public func auth_with_code(email: String, otp_code: Int) async throws -> Any {
+    public func authWithCode(email: String, otpCode: Int) async throws -> Any {
         let urlString = "\(api)/premium/check-email-otp"
-        guard let url = URL(string: urlString) else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        
         let generatedDeviceId = UUID().uuidString.lowercased()
         self.deviceId = generatedDeviceId
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.allHTTPHeaderFields = headers
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
         let body: [String: Any] = ["email": email, "otp_code": otp_code, "deviceId": generatedDeviceId]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         
-        let (responseData, _) = try await URLSession.shared.data(for: request)
-        let json = try JSONSerialization.jsonObject(with: responseData)
+        
+        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+        
+        let json = try await fetchJSON(from: urlString,method: .post,body: bodyData,queryParameters: nil)
         
         if let dictionary = json as? [String: Any],
            let dataContainer = dictionary["data"] as? [String: Any],
@@ -85,15 +89,8 @@ public class Peremen {
         return json
     }
 
-    public func get_proxy() async throws -> Any {
+    public func getProxy() async throws -> Any {
         let urlString = "\(api)/premium/get-proxy-with-subscription"
-        guard let url = URL(string: urlString) else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.allHTTPHeaderFields = headers
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: Any] = [
             "userId": userId ?? "",
@@ -101,21 +98,14 @@ public class Peremen {
             "deviceIp": "127.0.0.1",
             "withAuth": false
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         
-        let (responseData, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: responseData)
+        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+        
+        return try await fetchJSON(from: urlString,method: .post,body: bodyData,queryParameters: nil)
     }
 
-    public func deactivate_device() async throws -> Any {
+    public func deactivateDevice() async throws -> Any {
         let urlString = "\(api)/premium/deactivate-device"
-        guard let url = URL(string: urlString) else {
-            throw NSError(domain: "Invalid URL", code: -1)
-        }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.allHTTPHeaderFields = headers
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let body: [String: Any] = [
             "userId": userId ?? "",
@@ -125,9 +115,8 @@ public class Peremen {
         self.deviceId = nil
         self.userId = nil
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
         
-        let (responseData, _) = try await URLSession.shared.data(for: request)
-        return try JSONSerialization.jsonObject(with: responseData)
+        return try await fetchJSON(from: urlString,method: .post,body: bodyData,queryParameters: nil)
     }
 }
